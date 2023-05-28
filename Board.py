@@ -1,0 +1,420 @@
+import pygame
+import CONSTANTS
+import numpy
+import math
+from Piece import Piece
+
+
+class Board:
+    Loc = []
+    main_surface = None
+    selectedTile = None
+    Pieces = []
+    curruntSide = 0
+    isHovered = False
+    toMovePiece = None
+
+    def __init__(self, surface: pygame.Surface) -> None:
+        self.main_surface = surface
+
+    def startOver(self):
+        self.LoadPieces()
+
+    def drawBackground(self):
+        for x in range(0, 8):
+            for y in range(0, 8):
+                Pos = CONSTANTS.PointToPos(x, y)
+                if (x+y) % 2 != 0:
+                    pygame.draw.rect(self.main_surface, CONSTANTS.BLACK, pygame.Rect(
+                        Pos[0], Pos[1], CONSTANTS.TILESIZE, CONSTANTS.TILESIZE))
+                else:
+                    pygame.draw.rect(self.main_surface, CONSTANTS.WHITE, pygame.Rect(
+                        Pos[0], Pos[1], CONSTANTS.TILESIZE, CONSTANTS.TILESIZE))
+
+    def drawGame(self):
+        self.drawBackground()
+        self.drawPieces()
+        self.drawIndicators()
+
+    def drawIndicators(self):
+        if self.isHovered:
+            for tile in self.indicatedTiles:
+                Pos = CONSTANTS.PointToPos(tile[0],tile[1])
+                IndiSurface = pygame.Surface((CONSTANTS.TILESIZE,CONSTANTS.TILESIZE), pygame.SRCALPHA)
+                pygame.draw.circle(IndiSurface,CONSTANTS.HIGHLIGHTER,(CONSTANTS.TILESIZE/2,CONSTANTS.TILESIZE/2),CONSTANTS.INDICATOR_CIRCLE_RADIUS)
+
+
+                self.main_surface.blit(IndiSurface,Pos)
+    def drawPieces(self):
+        for x in range(0, 8):
+            for y in range(0, 8):
+                if self.Pieces[x][y] != 0:
+                    Pos = CONSTANTS.PointToPos(x, y)
+                    self.main_surface.blit(
+                        self.Pieces[x][y].image, (Pos[0], Pos[1]))
+
+    def SetMouseClickedTile(self, pos):
+        tileX = math.floor(pos[0]/CONSTANTS.TILESIZE)
+        tileY = math.floor(pos[1]/CONSTANTS.TILESIZE)
+
+        gotTile = self.getTile([tileX, tileY])
+        if self.toMovePiece == None:
+            if gotTile != 0:
+                if gotTile.side == self.curruntSide:
+                    self.HoverPiece(tileX, tileY)
+                else:
+                    self.isHovered = False
+            else:
+                self.isHovered = False
+
+        elif self.toMovePiece != None:
+            if gotTile != 0:
+                if gotTile.side == self.curruntSide:
+                    self.HoverPiece(tileX, tileY)
+                else:
+                    self.MovePiece(tileX, tileY)
+            else:
+                self.MovePiece(tileX, tileY)
+                self.isHovered = False
+
+    def HoverPiece(self, tileX, tileY):
+        self.toMovePiece = tileX, tileY
+        self.indicatedTiles = self.getMovables()
+        self.isHovered = True
+
+
+    def MovePiece(self, x2, y2):
+        toMovePiece = self.getTile(self.toMovePiece)
+
+        Movables = self.getMovables()
+        temp_l = [x2, y2]
+
+        self.CoreChange(temp_l, Movables, toMovePiece)
+
+    def getMovables(self):
+        toMovePiece = self.getTile(self.toMovePiece)
+        Movables = []
+        if toMovePiece.pid == CONSTANTS.PIECE_IDS["Pawn"]:
+
+            Movables = self.Algo_Pawn(
+                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+        elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Bishop"]:
+
+            Movables = self.Algo_Bishop(
+                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+
+        elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Rook"]:
+
+            Movables = self.Algo_Rook(
+                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+
+        elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Queen"]:
+
+            Movables = self.Algo_Queen(
+                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+
+        elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Knight"]:
+
+            Movables = self.Algo_Knight(
+                self.toMovePiece[0], self.toMovePiece[1])
+        return Movables
+
+    def CoreChange(self, temp_l, Movables, toMovePiece):
+        x2 = temp_l[0]
+        y2 = temp_l[1]
+        if temp_l in Movables:
+
+            if self.getTile(temp_l) == 0:
+                self.Pieces[x2][y2] = toMovePiece
+                self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
+                self.toMovePiece = None
+
+            elif self.getTile(temp_l) != 0:
+
+                self.Pieces[x2][y2] = toMovePiece
+                self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
+                self.toMovePiece = None
+
+            self.Pieces[x2][y2].hasMoved = True
+            self.changeSide()
+        self.isHovered = False
+
+    def LoadPieces(self):
+        # Creating Temperory List
+        tempPis = numpy.zeros((8, 8)).tolist()
+
+        # Loading Kings
+        tempPis[4][7] = Piece(CONSTANTS.PIECE_IDS["King"], 0)
+        tempPis[4][0] = Piece(CONSTANTS.PIECE_IDS["King"], 1)
+
+        # Loading Queens
+        tempPis[3][7] = Piece(CONSTANTS.PIECE_IDS["Queen"], 0)
+        tempPis[3][0] = Piece(CONSTANTS.PIECE_IDS["Queen"], 1)
+
+        # Loading Bishop
+        tempPis[2][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
+        tempPis[2][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
+
+        tempPis[5][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
+        tempPis[5][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
+
+        # Loading Knight
+        tempPis[1][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
+        tempPis[1][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
+
+        tempPis[6][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
+        tempPis[6][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
+
+        # Loading Rook
+        tempPis[0][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
+        tempPis[0][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
+
+        tempPis[7][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
+        tempPis[7][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
+        # Loading Pawns
+
+        for pos in range(0, 8):
+            tempPis[pos][1] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 1)
+
+        for pos in range(0, 8):
+            tempPis[pos][6] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
+
+        self.Pieces = tempPis
+
+ # AlgotRithms ------
+    def Algo_Pawn(self, x, y, side):
+
+        foundTiles = []
+
+        curruntTile = self.getTile([x, y])
+
+        toUp = 1
+        if curruntTile.hasMoved:
+            toUp = 1
+        else:
+            toUp = 2
+        foundTiles.extend(self.FindAngle90(x, y, side, toUp, True))
+        foundTiles.extend(self.FindAngle45(x, y, side, 2, True))
+
+        return foundTiles
+
+    def Algo_Bishop(self, x, y, side):
+
+        foundTiles = []
+
+        foundTiles.extend(self.FindAngle45(x, y, side, 8, False))
+
+        return foundTiles
+
+    def Algo_Rook(self, x, y, side):
+
+        foundTiles = []
+
+        foundTiles.extend(self.FindAngle90(x, y, side, 8, False))
+        foundTiles.extend(self.FindAngle0(x, y, side, 8))
+
+        return foundTiles
+
+    def Algo_Queen(self, x, y, side):
+
+        foundTiles = []
+
+        foundTiles.extend(self.FindAngle0(x, y, side, 8))
+        foundTiles.extend(self.FindAngle90(x, y, side, 8, False))
+        foundTiles.extend(self.FindAngle45(x, y, side, 8, False))
+
+        return foundTiles
+
+    def FindAngle90(self, x, y, side, upto=8, isPawn=False):
+
+        foundTiles = []
+        if isPawn:
+            if side == 0:
+                for y_ in range(1, upto+1):
+                    if self.getTile([x, y-y_]) == 0:
+                        foundTiles.append([x, y-y_])
+
+                    elif self.getTile([x, y-y_]).side != self.curruntSide:
+                        break
+            if side == 1:
+                for y_ in range(1, upto+1):
+                    if self.getTile([x, y+y_]) == 0:
+                        foundTiles.append([x, y+y_])
+                    elif self.getTile([x, y+y_]).side != self.curruntSide:
+                        break
+        else:
+            for i in range(1, upto+1):
+                temp_coord = [x, y+i]
+                if temp_coord[1] < 8 and temp_coord[1] >= 0:
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+                else:
+                    break
+            for i in range(1, upto+1):
+                temp_coord = [x, y-i]
+                if temp_coord[1] >= 0 and temp_coord[1] < 8:
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+                else:
+                    break
+
+        return foundTiles
+
+    def FindAngle0(self, x, y, side, upto=8):
+        foundTiles = []
+        for i in range(1, upto+1):
+            temp_coord = [x+i, y]
+            if temp_coord[0] < 8 and temp_coord[0] >= 0:
+                if self.getTile(temp_coord) == 0:
+                    foundTiles.append(temp_coord)
+                elif self.getTile(temp_coord).side == self.curruntSide:
+                    break
+                elif self.getTile(temp_coord).side != self.curruntSide:
+                    foundTiles.append(temp_coord)
+                    break
+            else:
+                break
+        for i in range(1, upto+1):
+            temp_coord = [x-i, y]
+            if temp_coord[0] >= 0 and temp_coord[0] < 8:
+                if self.getTile(temp_coord) == 0:
+                    foundTiles.append(temp_coord)
+                elif self.getTile(temp_coord).side == self.curruntSide:
+                    break
+                elif self.getTile(temp_coord).side != self.curruntSide:
+                    foundTiles.append(temp_coord)
+                    break
+            else:
+                break
+
+        return foundTiles
+
+    def FindAngle45(self, x, y, side, upto=8, isPawn=False):
+        foundTiles = []
+
+        if isPawn:
+            if side == 1:
+                temp_coord = [x+1, y+1]
+
+                if self.getTile(temp_coord) != 0:
+
+                    if self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                temp_coord = [x-1, y+1]
+                if self.getTile(temp_coord) != 0:
+                    if self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+
+            elif side == 0:
+                temp_coord = [x-1, y-1]
+                if self.getTile(temp_coord) != 0:
+                    if self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                temp_coord = [x+1, y-1]
+                if self.getTile(temp_coord) != 0:
+                    if self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+        elif not isPawn:
+            for i in range(1, upto):
+                temp_coord = [x+i, y+i]
+                if self.checkInLimit(temp_coord):
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+
+                else:
+                    break
+            for i in range(1, upto):
+                temp_coord = [x+i, y-i]
+                if self.checkInLimit(temp_coord):
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+                else:
+                    break
+            for i in range(1, upto):
+                temp_coord = [x-i, y-i]
+                if self.checkInLimit(temp_coord):
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+                else:
+                    break
+            for i in range(1, upto):
+                temp_coord = [x-i, y+i]
+                if self.checkInLimit(temp_coord):
+                    if self.getTile(temp_coord) == 0:
+                        foundTiles.append(temp_coord)
+                    elif self.getTile(temp_coord).side == self.curruntSide:
+                        break
+                    elif self.getTile(temp_coord).side != self.curruntSide:
+                        foundTiles.append(temp_coord)
+                        break
+                else:
+                    break
+
+        return foundTiles
+    
+    def Algo_Knight(self, x, y):
+        foundTiles = []
+
+        self.FindL(foundTiles, [x+1, y+2])
+        self.FindL(foundTiles, [x-1, y+2])
+
+        self.FindL(foundTiles, [x+2, y-1])
+        self.FindL(foundTiles, [x+2, y+1])
+
+        self.FindL(foundTiles, [x-2, y+1])
+        self.FindL(foundTiles, [x-2, y-1])
+
+        self.FindL(foundTiles, [x+1, y-2])
+        self.FindL(foundTiles, [x-1, y-2])
+
+        return foundTiles
+
+    def FindL(self, foundTiles, temp_coord):
+
+        if self.checkInLimit(temp_coord):
+            if self.getTile(temp_coord) == 0:
+                foundTiles.append(temp_coord)
+            elif self.getTile(temp_coord).side != self.curruntSide:
+                foundTiles.append(temp_coord)
+
+    # Utiliteis
+
+    def getTile(self, coordinates):
+        return self.Pieces[coordinates[0]][coordinates[1]]
+
+    def checkInLimit(self, coordinates):
+        if coordinates[0] >= 0 and coordinates[0] < 8 and coordinates[1] >= 0 and coordinates[1] < 8:
+            return True
+        else:
+            return False
+
+    def changeSide(self):
+        if self.curruntSide == 1:
+            self.curruntSide = 0
+        else:
+            self.curruntSide = 1
