@@ -13,16 +13,21 @@ board.startOver()
 pygame.display.update()
 
 running = True
+
 while running:
     board.drawGame()
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.MOUSEBUTTONUP:
-            pos = pygame.mouse.get_pos()
-            board.SetMouseClickedTile(pos)
-
+        if not board.isGameOver:
+            if event.type == pygame.MOUSEBUTTONUP:
+                pos = pygame.mouse.get_pos()
+                board.SetMouseClickedTile(pos)
+        else:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    board.startOver()
     pygame.display.flip()
 
     

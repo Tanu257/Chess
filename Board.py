@@ -4,7 +4,6 @@ import numpy
 import math
 from Piece import Piece
 
-
 class Board:
     Loc = []
     main_surface = None
@@ -14,11 +13,25 @@ class Board:
     isHovered = False
     toMovePiece = None
 
+    GameWinner = None
+    isGameOver = False
+   
+
     def __init__(self, surface: pygame.Surface) -> None:
         self.main_surface = surface
+    
+        self.font = pygame.font.Font(None, CONSTANTS.font_size)
 
     def startOver(self):
         self.LoadPieces()
+        self.Loc = []
+        self.selectedTile = None
+        self.curruntSide = 0
+        self.isHovered = False
+        self.toMovePiece = None
+
+        self.GameWinner = None
+        self.isGameOver = False
 
     def drawBackground(self):
         for x in range(0, 8):
@@ -32,9 +45,23 @@ class Board:
                         Pos[0], Pos[1], CONSTANTS.TILESIZE, CONSTANTS.TILESIZE))
 
     def drawGame(self):
-        self.drawBackground()
-        self.drawPieces()
-        self.drawIndicators()
+        if not self.isGameOver :
+            self.drawBackground()
+            self.drawPieces()
+            self.drawIndicators()
+            self.GameOverScreen()
+        else:
+            self.GameOverScreen()
+    def GameOverScreen(self):
+                # Set up the font
+        winnerText = None
+        if self.GameWinner == 0:
+            winnerText = "White Won The Game! Press Space To Rematch"
+        else:
+            winnerText = "Black Won The Game! Press Space To Rematch"
+
+        text_surface = self.font.render(winnerText, True, CONSTANTS.TEXTCOLOR)
+        self.main_surface.blit(text_surface, (50, 250))
 
     def drawIndicators(self):
         if self.isHovered:
@@ -43,8 +70,8 @@ class Board:
                 IndiSurface = pygame.Surface((CONSTANTS.TILESIZE,CONSTANTS.TILESIZE), pygame.SRCALPHA)
                 pygame.draw.circle(IndiSurface,CONSTANTS.HIGHLIGHTER,(CONSTANTS.TILESIZE/2,CONSTANTS.TILESIZE/2),CONSTANTS.INDICATOR_CIRCLE_RADIUS)
 
-
                 self.main_surface.blit(IndiSurface,Pos)
+                
     def drawPieces(self):
         for x in range(0, 8):
             for y in range(0, 8):
@@ -54,42 +81,41 @@ class Board:
                         self.Pieces[x][y].image, (Pos[0], Pos[1]))
 
     def SetMouseClickedTile(self, pos):
-        tileX = math.floor(pos[0]/CONSTANTS.TILESIZE)
-        tileY = math.floor(pos[1]/CONSTANTS.TILESIZE)
+        if not self.isGameOver:
+            tileX = math.floor(pos[0]/CONSTANTS.TILESIZE)
+            tileY = math.floor(pos[1]/CONSTANTS.TILESIZE)
 
-        gotTile = self.getTile([tileX, tileY])
-        if self.toMovePiece == None:
-            if gotTile != 0:
-                if gotTile.side == self.curruntSide:
-                    self.HoverPiece(tileX, tileY)
+            gotTile = self.getTile([tileX, tileY])
+            if self.toMovePiece == None:
+                if gotTile != 0:
+                    if gotTile.side == self.curruntSide:
+                        self.HoverPiece(tileX, tileY)
+                    else:
+                        self.isHovered = False
                 else:
                     self.isHovered = False
-            else:
-                self.isHovered = False
 
-        elif self.toMovePiece != None:
-            if gotTile != 0:
-                if gotTile.side == self.curruntSide:
-                    self.HoverPiece(tileX, tileY)
+            elif self.toMovePiece != None:
+                if gotTile != 0:
+                    if gotTile.side == self.curruntSide:
+                        self.HoverPiece(tileX, tileY)
+                    else:
+                        self.MovePiece(tileX, tileY)
                 else:
                     self.MovePiece(tileX, tileY)
-            else:
-                self.MovePiece(tileX, tileY)
-                self.isHovered = False
+                    self.isHovered = False
 
     def HoverPiece(self, tileX, tileY):
         self.toMovePiece = tileX, tileY
         self.indicatedTiles = self.getMovables()
         self.isHovered = True
 
-
     def MovePiece(self, x2, y2):
         toMovePiece = self.getTile(self.toMovePiece)
 
-        Movables = self.getMovables()
-        temp_l = [x2, y2]
+        Movables = self.indicatedTiles
 
-        self.CoreChange(temp_l, Movables, toMovePiece)
+        self.CoreChange([x2, y2], Movables, toMovePiece)
 
     def getMovables(self):
         toMovePiece = self.getTile(self.toMovePiece)
@@ -97,25 +123,28 @@ class Board:
         if toMovePiece.pid == CONSTANTS.PIECE_IDS["Pawn"]:
 
             Movables = self.Algo_Pawn(
-                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+                self.toMovePiece[0], self.toMovePiece[1])
         elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Bishop"]:
 
-            Movables = self.Algo_Bishop(
-                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+            Movables = self.FindAngle45(
+                self.toMovePiece[0], self.toMovePiece[1],8)
 
         elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Rook"]:
 
             Movables = self.Algo_Rook(
-                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+                self.toMovePiece[0], self.toMovePiece[1])
 
         elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Queen"]:
 
             Movables = self.Algo_Queen(
-                self.toMovePiece[0], self.toMovePiece[1], self.curruntSide)
+                self.toMovePiece[0], self.toMovePiece[1])
 
         elif toMovePiece.pid == CONSTANTS.PIECE_IDS["Knight"]:
 
             Movables = self.Algo_Knight(
+                self.toMovePiece[0], self.toMovePiece[1])
+        elif toMovePiece.pid == CONSTANTS.PIECE_IDS['King']:
+            Movables =  self.Algo_King(
                 self.toMovePiece[0], self.toMovePiece[1])
         return Movables
 
@@ -130,7 +159,10 @@ class Board:
                 self.toMovePiece = None
 
             elif self.getTile(temp_l) != 0:
-
+                if self.Pieces[x2][y2].pid == 0:
+                    self.GameWinner = self.changeSide
+                    self.isGameOver = True
+                    
                 self.Pieces[x2][y2] = toMovePiece
                 self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
                 self.toMovePiece = None
@@ -180,63 +212,79 @@ class Board:
             tempPis[pos][6] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
 
         self.Pieces = tempPis
-
  # AlgotRithms ------
-    def Algo_Pawn(self, x, y, side):
+    def Algo_Pawn(self, x, y):
 
         foundTiles = []
 
         curruntTile = self.getTile([x, y])
 
         toUp = 1
+
         if curruntTile.hasMoved:
             toUp = 1
         else:
             toUp = 2
-        foundTiles.extend(self.FindAngle90(x, y, side, toUp, True))
-        foundTiles.extend(self.FindAngle45(x, y, side, 2, True))
+        foundTiles.extend(self.FindAngle90(x, y,  toUp, True))
+        foundTiles.extend(self.FindAngle45(x, y,  2, True))
 
         return foundTiles
 
-    def Algo_Bishop(self, x, y, side):
+    def Algo_Rook(self, x, y):
 
         foundTiles = []
 
-        foundTiles.extend(self.FindAngle45(x, y, side, 8, False))
+        foundTiles.extend(self.FindAngle90(x, y,  8, False))
+        foundTiles.extend(self.FindAngle0(x, y,  8))
 
         return foundTiles
 
-    def Algo_Rook(self, x, y, side):
+    def Algo_Queen(self, x, y):
 
         foundTiles = []
 
-        foundTiles.extend(self.FindAngle90(x, y, side, 8, False))
-        foundTiles.extend(self.FindAngle0(x, y, side, 8))
+        foundTiles.extend(self.FindAngle0(x, y,  8))
+        foundTiles.extend(self.FindAngle90(x, y,  8, False))
+        foundTiles.extend(self.FindAngle45(x, y,  8, False))
 
         return foundTiles
-
-    def Algo_Queen(self, x, y, side):
-
+    def Algo_Knight(self, x, y):
         foundTiles = []
 
-        foundTiles.extend(self.FindAngle0(x, y, side, 8))
-        foundTiles.extend(self.FindAngle90(x, y, side, 8, False))
-        foundTiles.extend(self.FindAngle45(x, y, side, 8, False))
+        self.FindL(foundTiles, [x+1, y+2])
+        self.FindL(foundTiles, [x-1, y+2])
+
+        self.FindL(foundTiles, [x+2, y-1])
+        self.FindL(foundTiles, [x+2, y+1])
+
+        self.FindL(foundTiles, [x-2, y+1])
+        self.FindL(foundTiles, [x-2, y-1])
+
+        self.FindL(foundTiles, [x+1, y-2])
+        self.FindL(foundTiles, [x-1, y-2])
 
         return foundTiles
+    def Algo_King(self,x,y):
+        foundTiles = []
 
-    def FindAngle90(self, x, y, side, upto=8, isPawn=False):
+        foundTiles.extend(self.FindAngle0(x,y,1))
+        foundTiles.extend(self.FindAngle45(x,y,2,False))
+        foundTiles.extend(self.FindAngle90(x,y,1,False))
+
+
+        return foundTiles
+    def FindAngle90(self, x, y,  upto=8, isPawn=False):
 
         foundTiles = []
         if isPawn:
-            if side == 0:
+            if self.curruntSide == 0:
                 for y_ in range(1, upto+1):
                     if self.getTile([x, y-y_]) == 0:
                         foundTiles.append([x, y-y_])
 
                     elif self.getTile([x, y-y_]).side != self.curruntSide:
                         break
-            if side == 1:
+            if self.curruntSide == 1:
                 for y_ in range(1, upto+1):
                     if self.getTile([x, y+y_]) == 0:
                         foundTiles.append([x, y+y_])
@@ -270,7 +318,7 @@ class Board:
 
         return foundTiles
 
-    def FindAngle0(self, x, y, side, upto=8):
+    def FindAngle0(self, x, y,upto=8):
         foundTiles = []
         for i in range(1, upto+1):
             temp_coord = [x+i, y]
@@ -299,11 +347,11 @@ class Board:
 
         return foundTiles
 
-    def FindAngle45(self, x, y, side, upto=8, isPawn=False):
+    def FindAngle45(self, x, y, upto=8, isPawn=False):
         foundTiles = []
 
         if isPawn:
-            if side == 1:
+            if self.curruntSide == 1:
                 temp_coord = [x+1, y+1]
 
                 if self.getTile(temp_coord) != 0:
@@ -315,7 +363,7 @@ class Board:
                     if self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
 
-            elif side == 0:
+            elif self.curruntSide == 0:
                 temp_coord = [x-1, y-1]
                 if self.getTile(temp_coord) != 0:
                     if self.getTile(temp_coord).side != self.curruntSide:
@@ -377,22 +425,6 @@ class Board:
 
         return foundTiles
     
-    def Algo_Knight(self, x, y):
-        foundTiles = []
-
-        self.FindL(foundTiles, [x+1, y+2])
-        self.FindL(foundTiles, [x-1, y+2])
-
-        self.FindL(foundTiles, [x+2, y-1])
-        self.FindL(foundTiles, [x+2, y+1])
-
-        self.FindL(foundTiles, [x-2, y+1])
-        self.FindL(foundTiles, [x-2, y-1])
-
-        self.FindL(foundTiles, [x+1, y-2])
-        self.FindL(foundTiles, [x-1, y-2])
-
-        return foundTiles
 
     def FindL(self, foundTiles, temp_coord):
 
