@@ -212,6 +212,7 @@ class Board:
             tempPis[pos][6] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
 
         self.Pieces = tempPis
+        
  # AlgotRithms ------
     def Algo_Pawn(self, x, y):
 
@@ -425,7 +426,6 @@ class Board:
 
         return foundTiles
     
-
     def FindL(self, foundTiles, temp_coord):
 
         if self.checkInLimit(temp_coord):
