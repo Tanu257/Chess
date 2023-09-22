@@ -52,8 +52,8 @@ class Board:
             self.GameOverScreen()
         else:
             self.GameOverScreen()
+            
     def GameOverScreen(self):
-                # Set up the font
         winnerText = None
         if self.GameWinner == 0:
             winnerText = "White Won The Game! Press Space To Rematch"
@@ -213,7 +213,9 @@ class Board:
 
         self.Pieces = tempPis
         
- # AlgotRithms ------
+ # ------ AlgoRithms ------
+    def isUnderCheck(self):            
+        pass
     def Algo_Pawn(self, x, y):
 
         foundTiles = []
