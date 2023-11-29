@@ -3,7 +3,7 @@ import CONSTANTS
 import numpy
 import math
 from Piece import Piece
-
+import pgu.gui as gui
 class Board:
     Loc = []
     main_surface = None
@@ -57,7 +57,7 @@ class Board:
         winnerText = None
         if self.GameWinner == 0:
             winnerText = "White Won The Game! Press Space To Rematch"
-        else:
+        elif self.GameWinner == 1:
             winnerText = "Black Won The Game! Press Space To Rematch"
 
         text_surface = self.font.render(winnerText, True, CONSTANTS.TEXTCOLOR)
@@ -84,7 +84,6 @@ class Board:
         if not self.isGameOver:
             tileX = math.floor(pos[0]/CONSTANTS.TILESIZE)
             tileY = math.floor(pos[1]/CONSTANTS.TILESIZE)
-
             gotTile = self.getTile([tileX, tileY])
             if self.toMovePiece == None:
                 if gotTile != 0:
@@ -114,8 +113,13 @@ class Board:
         toMovePiece = self.getTile(self.toMovePiece)
 
         Movables = self.indicatedTiles
-
         self.CoreChange([x2, y2], Movables, toMovePiece)
+
+        if y2 == 0 and toMovePiece.pid == CONSTANTS.PIECE_IDS["Pawn"] and toMovePiece.side == 0:
+            self.TransformPawn(x2,y2,toMovePiece.side)
+        if y2 == 7 and toMovePiece.pid == CONSTANTS.PIECE_IDS["Pawn"] and toMovePiece.side == 1:
+            self.TransformPawn(x2,y2,toMovePiece.side)
+
 
     def getMovables(self):
         toMovePiece = self.getTile(self.toMovePiece)
@@ -180,40 +184,22 @@ class Board:
         tempPis[4][0] = Piece(CONSTANTS.PIECE_IDS["King"], 1)
 
         # Loading Queens
-        tempPis[3][7] = Piece(CONSTANTS.PIECE_IDS["Queen"], 0)
-        tempPis[3][0] = Piece(CONSTANTS.PIECE_IDS["Queen"], 1)
-
-        # Loading Bishop
-        tempPis[2][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
-        tempPis[2][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
-
-        tempPis[5][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
-        tempPis[5][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
-
-        # Loading Knight
-        tempPis[1][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
-        tempPis[1][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
-
-        tempPis[6][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
-        tempPis[6][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
-
-        # Loading Rook
-        tempPis[0][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
-        tempPis[0][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
-
-        tempPis[7][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
-        tempPis[7][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
         # Loading Pawns
 
-        for pos in range(0, 8):
-            tempPis[pos][1] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 1)
+        tempPis[5][5] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 1)
 
-        for pos in range(0, 8):
-            tempPis[pos][6] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
+        tempPis[3][2] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
 
         self.Pieces = tempPis
+
+    def TransformPawn(self,x2,y2,side):
+        choice = CONSTANTS.PIECE_IDS["Rook"]
         
+        self.Pieces[x2][y2] = Piece(choice,side)
+
+
  # ------ AlgoRithms ------
+
     def isUnderCheck(self):            
         pass
     def Algo_Pawn(self, x, y):
@@ -221,7 +207,6 @@ class Board:
         foundTiles = []
 
         curruntTile = self.getTile([x, y])
-
         toUp = 1
 
         if curruntTile.hasMoved:
@@ -352,33 +337,37 @@ class Board:
 
     def FindAngle45(self, x, y, upto=8, isPawn=False):
         foundTiles = []
-
         if isPawn:
+            
             if self.curruntSide == 1:
                 temp_coord = [x+1, y+1]
-
-                if self.getTile(temp_coord) != 0:
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit and self.getTile(temp_coord) != 0:
 
                     if self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
                 temp_coord = [x-1, y+1]
-                if self.getTile(temp_coord) != 0:
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit and self.getTile(temp_coord) != 0:
                     if self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
 
             elif self.curruntSide == 0:
                 temp_coord = [x-1, y-1]
-                if self.getTile(temp_coord) != 0:
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit and self.getTile(temp_coord) != 0:
                     if self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
                 temp_coord = [x+1, y-1]
-                if self.getTile(temp_coord) != 0:
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit and self.getTile(temp_coord) != 0 :
                     if self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
         elif not isPawn:
             for i in range(1, upto):
                 temp_coord = [x+i, y+i]
-                if self.checkInLimit(temp_coord):
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit:
                     if self.getTile(temp_coord) == 0:
                         foundTiles.append(temp_coord)
                     elif self.getTile(temp_coord).side == self.curruntSide:
@@ -391,7 +380,8 @@ class Board:
                     break
             for i in range(1, upto):
                 temp_coord = [x+i, y-i]
-                if self.checkInLimit(temp_coord):
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit:
                     if self.getTile(temp_coord) == 0:
                         foundTiles.append(temp_coord)
                     elif self.getTile(temp_coord).side == self.curruntSide:
@@ -399,11 +389,13 @@ class Board:
                     elif self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
                         break
-                else:
-                    break
+                    else:
+                        break
             for i in range(1, upto):
                 temp_coord = [x-i, y-i]
-                if self.checkInLimit(temp_coord):
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit:
+
                     if self.getTile(temp_coord) == 0:
                         foundTiles.append(temp_coord)
                     elif self.getTile(temp_coord).side == self.curruntSide:
@@ -411,11 +403,13 @@ class Board:
                     elif self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
                         break
-                else:
-                    break
+                    else:
+                        break
             for i in range(1, upto):
                 temp_coord = [x-i, y+i]
-                if self.checkInLimit(temp_coord):
+                isInLimit = self.checkInLimit(temp_coord)
+                if isInLimit:
+
                     if self.getTile(temp_coord) == 0:
                         foundTiles.append(temp_coord)
                     elif self.getTile(temp_coord).side == self.curruntSide:
@@ -423,8 +417,8 @@ class Board:
                     elif self.getTile(temp_coord).side != self.curruntSide:
                         foundTiles.append(temp_coord)
                         break
-                else:
-                    break
+                    else:
+                        break
 
         return foundTiles
     
