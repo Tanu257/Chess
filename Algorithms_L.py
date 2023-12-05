@@ -2,8 +2,13 @@ from Piece import Piece
 import CONSTANTS
 class Algorithms:
 
-    
-    def getMovables(self):
+    def __init__(self,piece,whiteStates,blackStates):
+        self.Pieces = piece
+        self.whiteStates = whiteStates
+        self.blackStates = blackStates
+    def getMovables(self,toMovePiece,curruntSide):
+        self.toMovePiece = toMovePiece
+        self.curruntSide = curruntSide
         toMovePiece = self.getTile(self.toMovePiece)
         Movables = []
         if toMovePiece.pid == CONSTANTS.PIECE_IDS["Pawn"]:
@@ -267,3 +272,15 @@ class Algorithms:
                 foundTiles.append(temp_coord)
             elif self.getTile(temp_coord).side != self.curruntSide:
                 foundTiles.append(temp_coord)
+    
+    def getTile(self, coordinates):
+        print(self.Pieces)
+        print("fdgjsdhnfgjsdfgdsfhhhhhhhhhhhhhhhhhhh")
+
+        return self.Pieces[coordinates[0]][coordinates[1]]
+
+    def checkInLimit(self, coordinates):
+        if coordinates[0] >= 0 and coordinates[0] < 8 and coordinates[1] >= 0 and coordinates[1] < 8:
+            return True
+        else:
+            return False
