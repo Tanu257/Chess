@@ -15,6 +15,14 @@ PIECE_IDS = {
     "Knight":3,
     "Pawn":5
 }
+IDS_2_KEY = {
+    0:"King",
+    1:"Queen",
+    4:"Rook",
+    2:"Bishop",
+    3:"Knight",
+    5:"Pawn"
+}
 BLACK = (100,100,100)
 WHITE = (255,255,255)
 TEXTCOLOR = (200, 100, 80)  # White
