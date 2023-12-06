@@ -6,7 +6,7 @@ from Piece import Piece
 import threading
 from SideWindow import Swind
 import Algorithms_L
-import GammaX
+
 class Board:
     Loc = []
     main_surface = None
@@ -41,8 +41,6 @@ class Board:
         self.GameWinner = None
         self.isGameOver = False
         self.Algorithms =  Algorithms_L.Algorithms(self.Pieces,self.whiteStates,self.blackStates)
-        self.Engine = GammaX.GammaX1(self.Pieces,self.whiteStates,self.blackStates)
-
 
     def drawBackground(self):
         for x in range(0, 8):
@@ -98,7 +96,7 @@ class Board:
             gotTile = self.Algorithms.getTile([tileX, tileY])
             if self.toMovePiece == None:
                 if gotTile != 0:
-                    if gotTile.side == 0:
+                    if gotTile.side == self.curruntSide:
                         self.HoverPiece(tileX, tileY)
                     else:
                         self.isHovered = False
@@ -107,7 +105,7 @@ class Board:
 
             elif self.toMovePiece != None:
                 if gotTile != 0:
-                    if gotTile.side == 0:
+                    if gotTile.side == self.curruntSide:
                         self.HoverPiece(tileX, tileY)
                     else:
                         self.MovePiece(tileX, tileY)
@@ -133,69 +131,44 @@ class Board:
     def CoreChange(self, temp_l, Movables, toMovePiece):
         x2 = temp_l[0]
         y2 = temp_l[1]
-        if self.curruntSide == 0:
-            if temp_l in Movables:
+        if temp_l in Movables:
 
-                if self.Algorithms.getTile(temp_l) == 0:
-                    self.Pieces[x2][y2] = toMovePiece
-                    self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
-                    self.toMovePiece = None
-
-                elif self.Algorithms.getTile(temp_l) != 0:
-                    if self.Pieces[x2][y2].pid == 0:
-                        self.GameWinner = self.changeSide
-                        self.isGameOver = True
-                        
-                    self.Pieces[x2][y2] = toMovePiece
-                    self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
-                    self.toMovePiece = None
-
-                self.Pieces[x2][y2].hasMoved = True
-                # move of AI
-
-                self.Pieces = self.Engine.getFinalMove(self.Pieces)
+            if self.Algorithms.getTile(temp_l) == 0:
+                self.Pieces[x2][y2] = toMovePiece
+                self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
                 self.toMovePiece = None
 
-            self.isHovered = False
+            elif self.Algorithms.getTile(temp_l) != 0:
+                if self.Pieces[x2][y2].pid == 0:
+                    self.GameWinner = self.changeSide
+                    self.isGameOver = True
+                    
+                self.Pieces[x2][y2] = toMovePiece
+                self.Pieces[self.toMovePiece[0]][self.toMovePiece[1]] = 0
+                self.toMovePiece = None
+
+            self.Pieces[x2][y2].hasMoved = True
+            self.changeSide()
+        self.isHovered = False
 
     def LoadPieces(self):
-
+        # Creating Temperory List
         tempPis = numpy.zeros((8, 8)).tolist()
 
-            # Loading Kings
+        # Loading Kings
         tempPis[4][7] = Piece(CONSTANTS.PIECE_IDS["King"], 0)
         tempPis[4][0] = Piece(CONSTANTS.PIECE_IDS["King"], 1)
 
-        # Loading Queens
-        tempPis[3][7] = Piece(CONSTANTS.PIECE_IDS["Queen"], 0)
-        tempPis[3][0] = Piece(CONSTANTS.PIECE_IDS["Queen"], 1)
-
-        # Loading Bishop
-        tempPis[2][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
-        tempPis[2][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
-
-        tempPis[5][7] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 0)
-        tempPis[5][0] = Piece(CONSTANTS.PIECE_IDS["Bishop"], 1)
-
-        # Loading Knight
-        tempPis[1][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
-        tempPis[1][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
-
-        tempPis[6][7] = Piece(CONSTANTS.PIECE_IDS["Knight"], 0)
-        tempPis[6][0] = Piece(CONSTANTS.PIECE_IDS["Knight"], 1)
-
-        # Loading Rook
-        tempPis[0][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
-        tempPis[0][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
-
-        tempPis[7][7] = Piece(CONSTANTS.PIECE_IDS["Rook"], 0)
-        tempPis[7][0] = Piece(CONSTANTS.PIECE_IDS["Rook"], 1)
         # Loading Pawns
 
-        for pos in range(0, 8):
-            tempPis[pos][1] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 1)
+        tempPis[5][5] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 1)
 
-        for pos in range(0, 8):
-            tempPis[pos][6] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
+        tempPis[3][2] = Piece(CONSTANTS.PIECE_IDS["Pawn"], 0)
 
         self.Pieces = tempPis
+
+    def changeSide(self):
+            if self.curruntSide == 1:
+                self.curruntSide = 0
+            else:
+                self.curruntSide = 1

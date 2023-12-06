@@ -274,8 +274,6 @@ class Algorithms:
                 foundTiles.append(temp_coord)
     
     def getTile(self, coordinates):
-        print(self.Pieces)
-        print("fdgjsdhnfgjsdfgdsfhhhhhhhhhhhhhhhhhhh")
 
         return self.Pieces[coordinates[0]][coordinates[1]]
 
